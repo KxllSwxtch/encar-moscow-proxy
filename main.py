@@ -33,11 +33,10 @@ async def proxy_post(request: Request):
     if not target_url:
         return {"error": "URL не указан"}
 
-    # Получаем тело запроса и заголовки
     body = await request.body()
     headers = dict(request.headers)
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(follow_redirects=True) as client:
         response = await client.post(target_url, headers=headers, content=body)
 
         try:
