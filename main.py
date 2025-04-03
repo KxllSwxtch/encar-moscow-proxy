@@ -27,25 +27,16 @@ async def proxy_get(request: Request):
 
 @app.post("/api/proxy")
 async def proxy_post(request: Request):
-    body = await request.json()
-
-    target_url = body.get("url")
-    method = body.get("method", "POST").upper()
-    headers = body.get("headers", {})
-    data = body.get("body", "")
+    target_url = request.query_params.get("url")  # <-- Получаем URL из query-параметра
 
     if not target_url:
         return {"error": "URL не указан"}
 
-    async with httpx.AsyncClient() as client:
-        response = await client.request(
-            method=method,
-            url=target_url,
-            headers=headers,
-            content=data.encode("utf-8") if isinstance(data, str) else data,
-        )
+    body = await request.body()  # <-- Получаем тело как байты
+    headers = dict(request.headers)
 
-        # Если ответ JSON — возвращаем его как JSON
+    async with httpx.AsyncClient() as client:
+        response = await client.post(target_url, headers=headers, content=body)
         try:
             return JSONResponse(
                 status_code=response.status_code, content=response.json()
