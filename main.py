@@ -1,6 +1,8 @@
+import httpx
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-import httpx
+from fastapi.responses import JSONResponse
 
 app = FastAPI()
 
@@ -27,16 +29,17 @@ async def proxy_get(request: Request):
 
 @app.post("/api/proxy")
 async def proxy_post(request: Request):
-    target_url = request.query_params.get("url")  # <-- Получаем URL из query-параметра
-
+    target_url = request.query_params.get("url")
     if not target_url:
         return {"error": "URL не указан"}
 
-    body = await request.body()  # <-- Получаем тело как байты
+    # Получаем тело запроса и заголовки
+    body = await request.body()
     headers = dict(request.headers)
 
     async with httpx.AsyncClient() as client:
         response = await client.post(target_url, headers=headers, content=body)
+
         try:
             return JSONResponse(
                 status_code=response.status_code, content=response.json()
