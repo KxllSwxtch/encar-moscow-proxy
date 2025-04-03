@@ -36,14 +36,24 @@ async def proxy_post(request: Request):
     body = await request.body()
     headers = dict(request.headers)
 
-    async with httpx.AsyncClient(follow_redirects=True) as client:
-        response = await client.post(target_url, headers=headers, content=body)
-
+    async with httpx.AsyncClient(follow_redirects=False) as client:
         try:
+            response = await client.post(target_url, headers=headers, content=body)
+
+            # Попробуем вернуть JSON, если доступно
+            try:
+                return JSONResponse(
+                    status_code=response.status_code, content=response.json()
+                )
+            except Exception:
+                return JSONResponse(
+                    status_code=response.status_code, content={"text": response.text}
+                )
+
+        except httpx.TooManyRedirects:
             return JSONResponse(
-                status_code=response.status_code, content=response.json()
-            )
-        except Exception:
-            return JSONResponse(
-                status_code=response.status_code, content={"text": response.text}
+                status_code=500,
+                content={
+                    "error": "Слишком много редиректов. Проверь URL или метод запроса."
+                },
             )
